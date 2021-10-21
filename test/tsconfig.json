@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "target": "ES5",
+        "declaration": true,
+        "watch": true,
+        "module": "commonjs",
+        "esModuleInterop": true
+    },
+    "include": [
+        "index.ts"
+    ]
+}

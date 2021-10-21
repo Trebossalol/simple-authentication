@@ -1,0 +1,41 @@
+{
+  "name": "@trebossa/simple-auth",
+  "version": "1.0.0",
+  "description": "Use this package if you need quick and simple user authentication. Just pass some callbacks to create and find user, after that you can use the ready-to-go middleware and use authentication. See `test` folder for an example",
+  "main": "lib/index.js",
+  "scripts": {
+     "p": "npm publish --access=public"
+  },
+  "keywords": [
+    "auth middleware",
+    "authentication",
+    "express middleware",
+    "middleware",
+    "express auth",
+    "express",
+    "login",
+    "register",
+    "account"
+  ],
+  "author": "trebossa",
+  "license": "ISC",
+  "files": [
+    "lib",
+    "tsconfig.json"
+  ],
+  "directories": {
+    "lib": "lib"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "@types/body-parser": "^1.19.1",
+    "@types/express": "^4.17.13",
+    "@types/jsonwebtoken": "^8.5.5",
+    "typescript": "^4.4.4"
+  },
+  "dependencies": {
+    "bcrypt": "^5.0.1",
+    "express": "^4.17.1",
+    "jsonwebtoken": "^8.5.1"
+  }
+}

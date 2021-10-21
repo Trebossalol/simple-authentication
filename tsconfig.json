@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "target": "ES5",
+        "declaration": true,
+        "watch": true,
+        "outDir": "lib",
+        "module": "commonjs",
+    },
+    "include": [
+        "src"
+    ]
+}
