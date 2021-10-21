@@ -1,0 +1,8 @@
+POST http://localhost:5000/register?username=My-Username&password=Some-Password
+
+
+POST http://localhost:5000/login?username=My-Username&password=Some-Password
+// Returns JSON object with 'token' property
+
+POST http://localhost:5000/protected
+Authorization: YOUR_JWT_TOKEN_FROM_LOGIN_ROUTE
