@@ -1,30 +1,17 @@
-import * as Express from 'express'
 import { compare } from 'bcrypt'
-import { ApiOnErrorProps, FindUserViaLogin, validate } from './util'
+import { SimpleAuthMiddleware, SimpleAuthComponent, UserTemplate } from './util'
 import { sign } from 'jsonwebtoken'
-import { SimpleAuth } from './SimpleAuth'
+import SimpleAuth from '.'
 
 export interface HandleLoginOptions {
     bcrypt?: {
         rounds?: number
-    },
-    findUser: FindUserViaLogin
-    validation?: {
-        username?: (username: string) => boolean
-        password?: (password: string) => boolean
-    },
-    errors?: {
-        on400?: (props: ApiOnErrorProps) => void
-        on403?: (props: ApiOnErrorProps) => void
     }
 }
 
-export type LoginMiddleware = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => Promise<void | Express.Response<any, Record<string, any>>>
+export type LoginMiddleware = SimpleAuthMiddleware<HandleLoginOptions>
 
-export const handleLogin = (SimpleAuth: SimpleAuth, options: HandleLoginOptions) => async(req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
-
-    const throw403 = () => typeof options?.errors?.on403 == 'function' ? options.errors.on403({ next }) : res.sendStatus(403);
-    const throw400 = () => typeof options?.errors?.on400 == 'function' ? options.errors.on400({ next }) : res.sendStatus(400);
+export const handleLogin: SimpleAuthComponent<HandleLoginOptions> = <User extends UserTemplate>(simpleAuth: SimpleAuth<User>) => (options) => async(req, res, next) => {
 
     try {
 
@@ -33,19 +20,15 @@ export const handleLogin = (SimpleAuth: SimpleAuth, options: HandleLoginOptions)
         // Ensure string
         const username = String(_username)
         const password = String(_password)
-
-        // Validate input (optional)
-        if (!validate(options?.validation?.username, username) || !validate(options?.validation?.password, password)) 
-            return throw400()
         
-        const user = await options.findUser({
+        const user = await simpleAuth.options.findUserViaLogin({
             username
         })
 
         const passwordCorrect = await compare(password, user?.hashedPassword || '')
 
         if (user == undefined || !passwordCorrect) 
-            return throw403()
+            return simpleAuth.throw403(req, res)
 
         const { userID, hashedPassword, roles, ...rest } = user    
 
@@ -53,7 +36,7 @@ export const handleLogin = (SimpleAuth: SimpleAuth, options: HandleLoginOptions)
             userID,
             roles,
             ...rest
-        }, SimpleAuth.options.jsonwebtokenSecret)
+        }, simpleAuth.options.jsonwebtokenSecret)
         
         res
             .status(200)
@@ -62,6 +45,6 @@ export const handleLogin = (SimpleAuth: SimpleAuth, options: HandleLoginOptions)
             })
 
     } catch(e) {
-        return throw403()
+        return simpleAuth.throw403(req, res)
     }
 }

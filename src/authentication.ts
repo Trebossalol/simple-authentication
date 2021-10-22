@@ -1,48 +1,94 @@
 import * as Express from 'express'
-import { ApiOnErrorProps, FindUserViaUserID, LoginApiFoundUser } from './util'
+import { UserTemplate, SimpleAuthComponent, SimpleAuthMiddleware } from './util'
 import { verify } from 'jsonwebtoken'
-import { SimpleAuth } from './SimpleAuth'
+import SimpleAuth from './SimpleAuth'
 
-export interface EnsureAuthenticatedOptions {
-    findUser: FindUserViaUserID
-    errors?: {
-        on400?: (props: ApiOnErrorProps) => void
-        on403?: (props: ApiOnErrorProps) => void
-    }
+export interface EnsureAuthenticatedGetLocalsProps<User extends UserTemplate> {
+    user: User
 }
 
-export type AuthenticationMiddleware = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => Promise<void | Express.Response<any, Record<string, any>>>
+export interface EnsureAuthenticatedOptions<User extends UserTemplate> {
+    getLocals?: (props: EnsureAuthenticatedGetLocalsProps<User>) => object
+}
 
-export const ensureAuthenticated = (SimpleAuth: SimpleAuth, options: EnsureAuthenticatedOptions) => async(req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+export type TokenAuthenticationMiddleware<User extends UserTemplate> = SimpleAuthMiddleware<EnsureAuthenticatedOptions<User>>
 
-    const throw403 = () => typeof options?.errors?.on403 == 'function' ? options.errors.on403({ next }) : res.sendStatus(403);
+export const ensureAuthenticated: SimpleAuthComponent<any> = <User extends UserTemplate>(simpleAuth: SimpleAuth<User>) => (options) => async(req, res, next) => {
 
     try {
 
         const { authorization } = req.headers
         
-        if (!authorization) return throw403()
+        if (!authorization) return simpleAuth.throw403(req, res)
 
-        const decrypted = verify(authorization, SimpleAuth.options.jsonwebtokenSecret) as LoginApiFoundUser
+        const decrypted = verify(authorization, simpleAuth.options.jsonwebtokenSecret) as User
 
-        const user = await options.findUser({
+        const user = await simpleAuth.options.findUserViaUserID({
             userID: decrypted.userID
         })
 
         if (user == undefined) 
-            return throw403()
+            return simpleAuth.throw403(req, res)
 
         delete user.hashedPassword
 
-        res.locals = {
+        const locals = simpleAuth?.options?.authenticationOptions?.getLocals({ user }) || {
             jwtToken: decrypted,
             ...user
         }
 
+        res.locals = locals
+
         next()
 
     } catch(e) {
-        return throw403()
+        return simpleAuth.throw403(req, res)
+    }
+    
+}
+
+
+export interface EnsurehasRoleOptions {
+    role: ((roles: string[]) => boolean) | string[] | string
+}
+
+export type RoleAuthenticationMiddleware = SimpleAuthMiddleware<EnsurehasRoleOptions>
+
+export const ensureHasRole: SimpleAuthComponent<EnsurehasRoleOptions> = <User extends UserTemplate>(simpleAuth: SimpleAuth<User>) => (options) => async(req, res, next) => {
+
+    const checkResult = (result: Boolean) => {
+        if (!result) return simpleAuth.throw403(req, res)
+        return next()
+    }
+
+    try {
+
+        const { authorization } = req.headers
+        
+        if (!authorization) return simpleAuth.throw403(req, res)
+
+        const decrypted = verify(authorization, simpleAuth.options.jsonwebtokenSecret) as UserTemplate
+
+        const user = await simpleAuth.options.findUserViaUserID({
+            userID: decrypted.userID
+        })
+
+        if (user == undefined) 
+            return simpleAuth.throw403(req, res)
+
+        const role = options?.role
+
+        if (!role)
+            return simpleAuth.throw403(req, res)
+
+        if (typeof role === 'function') return checkResult(role(user.roles))
+
+        if (typeof role === 'string') return checkResult(user.roles.includes(role))
+
+        return checkResult(role.some(x => user.roles.includes(x)))
+
+    } catch(e) {
+        return simpleAuth.throw403(req, res)
     }
     
 }

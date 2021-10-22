@@ -1,6 +1,6 @@
 {
   "name": "@trebossa/simple-auth",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Use this package if you need quick and simple user authentication. Just pass some callbacks to create and find user, after that you can use the ready-to-go middleware and use authentication. See `test` folder for an example",
   "main": "lib/index.js",
   "scripts": {

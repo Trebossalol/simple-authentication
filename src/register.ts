@@ -1,7 +1,6 @@
-import * as Express from 'express'
 import { hash } from 'bcrypt'
-import { ApiOnErrorProps, validate } from './util'
-import { SimpleAuth } from './SimpleAuth'
+import SimpleAuth from '.'
+import { SimpleAuthComponent, validate, SimpleAuthMiddleware, UserTemplate } from './util'
 
 export interface RegisterApiResponse {
     hashedPassword: string
@@ -14,22 +13,16 @@ export interface HandleRegisterOptions {
     bcrypt?: {
         rounds?: number
     },
-    createUser: (data: RegisterApiResponse) => Promise<void> | void
     validation?: {
         username?: (username: string) => boolean
         name?: (name: string) => boolean
         password?: (password: string) => boolean
-    },
-    errors?: {
-        on400?: (props: ApiOnErrorProps) => void
     }
 }
 
-export type RegisterMiddleware = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => Promise<void | Express.Response<any, Record<string, any>>>
+export type RegisterMiddleware = SimpleAuthMiddleware<HandleRegisterOptions>
 
-export const handleRegister = (SimpleAuth: SimpleAuth, options: HandleRegisterOptions) => async(req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
-
-    const throw400 = () => typeof options?.errors?.on400 == 'function' ? options.errors.on400({ next }) : res.sendStatus(400);
+export const handleRegister: SimpleAuthComponent<HandleRegisterOptions> = <User extends UserTemplate>(simpleAuth: SimpleAuth<User>) => (options) => async(req, res, next) => {
 
     try {
 
@@ -43,19 +36,19 @@ export const handleRegister = (SimpleAuth: SimpleAuth, options: HandleRegisterOp
 
         // Validate input (optional)
         if (!validate(options?.validation?.name, name) || !validate(options?.validation?.username, username) || !validate(options?.validation?.password, password)) 
-            return throw400()
+            return simpleAuth.throw400(req, res)
 
-        await options.createUser({
+        await simpleAuth.options.createUserViaLogin({
             name,
             hashedPassword: await hash(password, options?.bcrypt?.rounds ?? 10),
             username,
-            email
+            email,
         })
 
         res.sendStatus(200)
 
     } catch(e) {
-        return throw400()
+        return simpleAuth.throw400(req, res)
     }
     
 }

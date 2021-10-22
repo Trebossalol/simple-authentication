@@ -1,43 +1,48 @@
-import * as Sa from './index'
+import * as SimpleAuth from './index'
 
-export interface SimpleAuthOptions {
+export interface SimpleAuthOptions<User extends SimpleAuth.util.UserTemplate> {
     jsonwebtokenSecret: string
-    findUserViaLogin: Sa.util.FindUserViaLogin
-    findUserViaUserID: Sa.util.FindUserViaUserID
-    createUserViaLogin: Sa.util.CreateUser
-    loginOptions?: Sa.login.HandleLoginOptions
-    registerOptions?: Sa.register.HandleRegisterOptions
-    authenticationOptions?: Sa.authentication.EnsureAuthenticatedOptions
+    findUserViaLogin: SimpleAuth.util.FindUserViaLogin<User>
+    findUserViaUserID: SimpleAuth.util.FindUserViaUserID<User>
+    createUserViaLogin: SimpleAuth.util.CreateUser
+    loginOptions?: SimpleAuth.login.HandleLoginOptions
+    registerOptions?: SimpleAuth.register.HandleRegisterOptions
+    authenticationOptions?: SimpleAuth.authentication.EnsureAuthenticatedOptions<User>
+
+    errors?: {
+        on400?: SimpleAuth.util.ApiErrorDescriptor
+        on403?: SimpleAuth.util.ApiErrorDescriptor
+    }
 }
 
 /**
  * @class
  * @description This class creates your SimpleAuth instance, it references middleware functions to handle the authentication proccess in you api
  */
-export class SimpleAuth {
+export default class <User extends SimpleAuth.util.UserTemplate = any>{
 
-    public handleLogin: Sa.login.LoginMiddleware
-    public handleRegister: Sa.register.RegisterMiddleware
-    public ensureAuthenticated: Sa.authentication.AuthenticationMiddleware
-    public options: SimpleAuthOptions
+    public handleLogin: SimpleAuth.login.LoginMiddleware
+    public handleRegister: SimpleAuth.register.RegisterMiddleware
+    public ensureAuthenticated: SimpleAuth.authentication.TokenAuthenticationMiddleware<User>
+    public ensureHasRole: SimpleAuth.authentication.RoleAuthenticationMiddleware
+    public options: SimpleAuthOptions<User>
 
-    constructor(options: SimpleAuthOptions) {
+    public throw400: SimpleAuth.util.ApiErrorCallback
+    public throw403: SimpleAuth.util.ApiErrorCallback
+
+    constructor(options: SimpleAuthOptions<User>) {
 
         this.options = options
 
-        this.handleLogin = Sa.login.handleLogin(this, {
-            findUser: options.findUserViaLogin,
-        })
+        this.handleLogin = SimpleAuth.login.handleLogin<User>(this)
+        this.handleRegister = SimpleAuth.register.handleRegister(this)
+        this.ensureAuthenticated = SimpleAuth.authentication.ensureAuthenticated<User>(this)
+        this.ensureHasRole = SimpleAuth.authentication.ensureHasRole<User>(this)
 
-        this.handleRegister = Sa.register.handleRegister(this, {
-            createUser: options.createUserViaLogin
-        })
-
-        this.ensureAuthenticated = Sa.authentication.ensureAuthenticated(this, {
-            findUser: options.findUserViaUserID
-        })
+        this.throw400 = SimpleAuth.util.throw400(this)
+        this.throw403 = SimpleAuth.util.throw403(this)
 
     }
 
-    
+        
 }
