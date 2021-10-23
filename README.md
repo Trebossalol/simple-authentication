@@ -4,6 +4,4 @@
 > 
 > [Github](https://github.com/Trebossalol/simple-authentication)
 
-> Please see the sample project in `test` folder for help.
->
-> Documentation will be ready soon
+> [Documentation](https://github.com/Trebossalol/simple-authentication/wiki)
